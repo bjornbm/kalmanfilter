@@ -12,6 +12,7 @@ import KalmanStatic
 import Numeric.Units.Dimensional.Prelude
 import qualified Prelude
 
+-- Be specific with types to help the type checker.
 type X = Vec (DOne :*. DOne)  Double
 type P = Mat ((DOne :*. DOne) :*.
               (DOne :*. DOne)) Double
@@ -28,6 +29,7 @@ type K = X
 
 type T = Z
 
+-- Helper for easier matrix construction.
 fromTuples (v1,v2) = consRow   (fromTuple v1) $
                      rowMatrix (fromTuple v2)
 
@@ -54,7 +56,7 @@ zs = snd $ mapAccumL (observation f h) x0_true vs
 observation :: F -> H -> X -> R -> (X,Z)
 observation f h x_ v = (x', observe_z h x' + v)
   where
-    x' = fst $ predict f undefined (x_,undefined)
+    x' = fst $ predict f (undefined::Q) (x_,undefined::P)
     observe_z h x = h `dotProduct` x
 
 (xs,ps) = unzip $ discreteKF f q h r (x0,p0) zs
@@ -63,7 +65,3 @@ main = do
   plotWindow (ts/~~one)
              (zs/~~one) "o"
              ((/~~one) $ vHead <$> fst <$> discreteKF f q h r (x0,p0) zs)
- {-           (zipWith (\x p -> fst x + sqrt (fst $ fst p)) xs ps)
-             vs "o"  -- yellow shit
-             (zipWith (\x p -> fst x - sqrt (fst $ fst p)) xs ps)
--- -}

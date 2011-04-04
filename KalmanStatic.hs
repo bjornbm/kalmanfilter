@@ -10,7 +10,6 @@
 
 module KalmanStatic where
 
---import TupleAlgebra
 import Vector
 import Matrix
 import Numeric.Units.Dimensional (DOne, Quantity)
@@ -47,12 +46,18 @@ import qualified Prelude
 --   x'  predicted (x-pr)
 --   x   updated
 
-type a :*. b = a :*: b :*: HNil  -- Shorthand.
 
+-- Convenience types.
+type a :*. b = a :*: b :*: HNil  -- Shorthand, throw in MyHList!
 type V v  = Vec v  Double
 type M vs = Mat vs Double
 
--- Some opserators.
+-- Some operators for convenience.
+-- Convention:
+--
+--   .  matrix on this side of operator
+--   ^  vector on this side of operator
+--
 (.*.) :: MatrixMatrix m1 m2 m3 => M m1 -> M m2 -> M m3
 (.*.) = matMat
 (.*^) :: MatrixVector m v v' => M m -> V v -> V v'
@@ -63,34 +68,49 @@ vecMat v m = transpose m `matVec` v
 (^+^) = elemAdd
 (^*) :: (HMap (MulD, d) ds1 ds2, Num a) => Vec ds1 a -> Quantity d a -> Vec ds2 a
 (^*)  = flip scaleVec
-{-
-i =  consRow   (fromTuple (_1,_0)) $
-     rowMatrix (fromTuple (_0,_1)) :: P
--- -}
---dyad :: (HMap Wrap ds vs, MatrixMatrix vs (v2:*:HNil) m) => X ds -> X vs -> P m
-v1 `dyad` v2 = colMatrix v1 `matMat` rowMatrix v2
+-- | The dyadic product of two vectors.
+dyad :: (HMap Wrap v1 vs, MatrixMatrix vs (v2:*:HNil) m) => V v1 -> V v2 -> M m
+v1 `dyad` v2 = colMatrix v1 .*. rowMatrix v2
 (.+.) = mElemAdd
 (.-.) = mElemSub
 
-
-class Square vs n | vs -> n
-instance (Cols (v:*:vs) n, HLength v n) => Square (v:*:vs) n
-
+-- Class constraining to homogeneous matrices. A matrix is
+-- homogeneous if all elements have the same physical dimensions.
 class MHomo vs d | vs -> d
 instance MHomo (HNil) d
 instance (Homo v d, MHomo vs d) => MHomo (v:*:vs) d
 
+-- Class constraining the number of rows in a matrix. No guarantees
+-- are provided for wellformedness (i.e. all rows of equal length).
+class Rows vs n | vs -> n
+instance HLength vs n => Rows vs n
+
+-- Class ensuring a matrix is wellformed. A matrix is well-formed if it
+-- has at least one non-empty row and all of its rows are of equal length.
+class Wellformed vs
+instance Cols (v:*:vs) (HSucc n) => Wellformed (v:*:vs)
+
+-- Class constraining the shape of a matrix to a square.
+class Square vs n | vs -> n
+instance (Cols vs n, Rows vs n) => Square vs n
+
+-- | The identity matrix. The size of the matrix is determined by its type.
 i :: forall vs n a. (Square vs n, HNat2Integral n, MHomo vs DOne, Num a) => Mat vs a
 i = ListMat $ O.unit_matrix $ hNat2Integral (undefined::n)
 
 
+
 -- Prediction
 --predict_x :: MatrixVector vs v v => F vs -> X v -> X v
+predict_x :: MatrixVector f x x => M f -> V x -> V x
 predict_x f x_ = f .*^ x_
 --predict_p :: F -> Q -> P -> P
+predict_p :: (Transpose f f', MatrixMatrix f p m, MatrixMatrix m f' p) => M f -> M p -> M p -> M p
 predict_p f q p_ = (f .*. p_ .*. transpose f) .+. q
 -- | Predict state and covariance one step.
 --predict :: F -> Q -> (X,P) -> (X,P)
+predict :: (MatrixVector f x x, Transpose f f', MatrixMatrix f p m, MatrixMatrix m f' p)
+        => M f -> M p -> (V x, M p) -> (V x, M p)
 predict f q (x_,p_) = (predict_x f x_, predict_p f q p_)
 
 -- Observation
