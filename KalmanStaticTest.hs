@@ -1,3 +1,6 @@
+{-# LANGUAGE TypeOperators #-}
+
+
 import Control.Applicative
 import Data.List
 import Graphics.Rendering.Chart.Simple
@@ -8,6 +11,22 @@ import Matrix
 import KalmanStatic
 import Numeric.Units.Dimensional.Prelude
 import qualified Prelude
+
+type X = Vec (DOne :*. DOne)  Double
+type P = Mat ((DOne :*. DOne) :*.
+              (DOne :*. DOne)) Double
+type F = P
+type Q = P
+
+type H = X
+type Z = Quantity DOne Double
+type R = Z
+
+type Y = Z
+type S = Z
+type K = X
+
+type T = Z
 
 fromTuples (v1,v2) = consRow   (fromTuple v1) $
                      rowMatrix (fromTuple v2)
