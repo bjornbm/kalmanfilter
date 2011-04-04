@@ -1,57 +1,33 @@
---import Numeric.AD
-import Graphics.Rendering.Chart.Simple
-import System.Random
-import Control.Applicative
+module KalmanTime where
+
+import TupleAlgebra
 
 -- Naming:
---   z  measurement
+--
 --   x  state
 --   p  state covariance
---   q  process variance (noise)
---   r  measurement variance (noise)
+--
+--   f  state transition model
+--   w  process noise
+--   q  process noise covariance
+--
+--   b  control input model
+--   u  control input vector
+--
+--   h  observation model
+--   z  measurement
+--   v  measurement noise
+--   r  measurement noise covariance
+--
+--   y  innovation (or residual)
+--   s  innovation covariance
+--   k  optimal kalman gain
 --
 -- Convention:
+--
 --   x_  old (x-minus)
 --   x'  predicted (x-pr)
 --   x   updated
-
--- Algebra
-(a,b)`dot`(c,d) = a*c + b*d
-(a,b)`dyad`(c,d) = ((a*c,a*d),
-                    (b*c,b*d))
-(v1,
- v2) .*. ((a,b),
-          (c,d)) = ((v1`dot`(a,c), v1`dot`(b,d)),
-                    (v2`dot`(a,c), v2`dot`(b,d)))
-v ^*. ((a,b),
-       (c,d)) = (v`dot`(a,c), v`dot`(b,d))
-(v1,v2) .*^ v = (v1`dot`v, v2`dot`v)
-(a,b) ^* x = (a*x,b*x)
-(a,b) ^/ c = (a/c,b/c)
-((a,b),(c,d)) .+. ((e,f),(g,h)) = ((a+e,b+f),(c+g,d+h))
-((a,b),(c,d)) .-. ((e,f),(g,h)) = ((a-e,b-f),(c-g,d-h))
-x -. ((a,b),(c,d)) = ((x-a,x-b),(x-c,x-d))
-i = ((1,0),
-     (0,1))
-
--- The model h(t)
-model t = (1,t)  -- h(t)
-
-measurement_z :: (T -> X) -> X -> T -> Z
-measurement_z model x_true t = (model t `dot` x_true)
-
-predict_x :: T -> X -> X
-predict_x t x_ = x_
-predict_p :: Q -> T -> P -> P
-predict_p q t p_ = p_ .+. q
-
-update_k :: H -> R -> P -> K
-update_k h r p' = (p' .*^ h) ^/ ((h ^*. p' `dot` h) + r)
-update_p :: H -> K -> P -> P
-update_p h k p'   = (i .-. (k `dyad` h)) .*. p'
-update_x :: (T -> H) -> T -> K -> X -> Z -> X
-update_x model t k x' z =  k ^* (z - measurement_z model x' t)
-
 
 
 type X = (Double,Double)
@@ -59,48 +35,60 @@ type K = X
 type H = X
 type P = ((Double,Double),
           (Double,Double))
+type F = P
 type Q = P
 type R = Z
 type T = Z
 type Z = Double
+type Y = Z
+type S = Z
 
--- Times
-ts :: [Double]
-ts = [0..100]
--- Measurement noise
-vs :: [Double]
-vs = map cos [0..100]
-x_true = (2,0.1)
--- Measurements
-measurements = zipWith (+) (measurement_z model x_true <$> ts) vs
--- Initial guess
-x0 = (0,0) :: X
-p0 = ((1,1),
-      (1,1)) :: P
-r  = 0.5^2 :: R
-q  = ((1e-5,    0),
-      (   0, 1e-5)) :: Q
+-- Prediction
+predict_x :: F -> X -> X
+predict_x f x_ = f .*^ x_
+predict_p :: F -> Q -> P -> P
+predict_p f q p_ = (f .*. p_ .*. tr f) .+. q
+-- | Predict state and covariance one step.
+predict :: F -> Q -> (X,P) -> (X,P)
+predict f q (x_,p_) = (predict_x f x_, predict_p f q p_)
 
+-- Observation
+innovation_y :: H -> X -> Z -> Y
+innovation_y h x' z = z - (h`dot`x')
+innovationCovariance_s :: H -> R -> P -> S
+innovationCovariance_s h r p' = (h ^*. p' `dot` h) + r
+gain_k :: H -> P -> S -> K
+gain_k h p' s = (p' .*^ h) ^/ s  -- Optimal Kalman gain.
 
-kfilter :: Q -> R -> (X,P) -> (T,Z) -> (X,P)
-kfilter q r (x_,p_) (t,z) = (x,p)
+-- Update
+update_x :: K -> Y -> X -> X
+update_x k y x' = x' ^+^ (k ^* y)
+update_p :: H -> K -> P -> P
+update_p h k p' = (i .-. (k `dyad` h)) .*. p'
+-- | Update predicted state and covariance using the given gain and innovation.
+update' :: H -> K -> Y -> (X,P) -> (X,P)
+update' h k y (x',p') = (update_x k y x', update_p h k p')
+-- | Update predicted state and covariance using the given observation.
+update :: H -> R -> Z -> (X,P) -> (X,P)
+update h r z (x',p') = (update_x k y x', update_p h k p')
   where
-    x' = predict_x t x_
-    p' = predict_p q t p_
-    k  = update_k (model t) r p'
-    x  = update_x model t k x' z
-    p  = update_p (model t) k p'
+    y = innovation_y h x' z
+    s = innovationCovariance_s h r p'
+    k = gain_k h p' s
 
-states q r xp0 zs = scanl (kfilter q r) xp0 zs
+-- | Predicts state and covariance and then updated the predicted state
+-- and covariance using the given observation.
+predictUpdate :: F -> Q -> H -> R -> (X,P) -> Z -> (X,P)
+predictUpdate f q h r (x_,p_) z = update h r z $ predict f q (x_,p_)
 
-(xs,ps) = unzip $ states q r (x0,p0) (zip ts measurements)
+-- | Discrete Kalman filter where the state transition and observation
+-- matrices are constant (do not change between time steps).
+discreteKF :: F -> Q -> H -> R -> (X,P) -> [Z] -> [(X,P)]
+discreteKF f q h r = scanl (predictUpdate f q h r)
 
-main = do
-  print ps
-  plotWindow ts
-             measurements "o"
-             (zipWith ($) (measurement_z model <$> xs) ts)
-             --(zipWith (\x p -> x + sqrt p) xs ps)
-             --vs "o"  -- yellow shit
-             --(zipWith (\x p -> x - sqrt p) xs ps)
--- -}
+-- | Discrete Kalman filter where the state transition matrix is a
+-- function of the time that has passed since the old state (i.e.
+-- the duration of prediction). The observations must be paired with
+-- the time difference since the preceeding observation.
+deltaTimeKF :: (T->F) -> Q -> H -> R -> (X,P) -> [(T,Z)] -> [(X,P)]
+deltaTimeKF f q h r  = scanl (\xp (dt,z) -> predictUpdate (f dt) q h r xp z)
