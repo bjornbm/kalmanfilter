@@ -4,11 +4,10 @@
 import Control.Applicative
 import Data.List
 import Graphics.Rendering.Chart.Simple
-import System.Random
 
-import Vector
-import Matrix
+import MyHList
 import KalmanStatic
+import Numeric.Units.Dimensional.LinearAlgebra
 import Numeric.Units.Dimensional.Prelude
 import qualified Prelude
 
@@ -30,8 +29,7 @@ type K = X
 type T = Z
 
 -- Helper for easier matrix construction.
-fromTuples (v1,v2) = consRow   (fromTuple v1) $
-                     rowMatrix (fromTuple v2)
+fromTuples (v1,v2) = fromTuple v1 |:. fromTuple v2
 
 -- Model.
 f = fromTuples ((_1,_1),
@@ -57,7 +55,7 @@ observation :: F -> H -> X -> R -> (X,Z)
 observation f h x_ v = (x', observe_z h x' + v)
   where
     x' = fst $ predict f (undefined::Q) (x_,undefined::P)
-    observe_z h x = h `dotProduct` x
+    observe_z h x = h >.< x
 
 (xs,ps) = unzip $ discreteKF f q h r (x0,p0) zs
 
