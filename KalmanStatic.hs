@@ -99,5 +99,5 @@ discreteKF f q h r = scanl (predictUpdate f q h r)
 -- function of the time that has passed since the old state (i.e.
 -- the duration of prediction). The observations must be paired with
 -- the time difference since the preceeding observation.
---deltaTimeKF :: (T->F) -> Q -> H -> R -> (X,P) -> [(T,Z)] -> [(X,P)]
-deltaTimeKF f q h r  = scanl (\xp (dt,z) -> predictUpdate (f dt) q h r xp z)
+--deltaTimeKF :: (T->F) -> (T->Q) -> H -> R -> (X,P) -> [(T,Z)] -> [(X,P)]
+deltaTimeKF f q h r  = scanl (\xp (dt,z) -> predictUpdate (f dt) (q dt) h r xp z)

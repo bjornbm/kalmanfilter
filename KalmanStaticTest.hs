@@ -8,7 +8,6 @@ import Graphics.Rendering.Chart.Simple
 import KalmanStatic
 import Numeric.Units.Dimensional.Prelude
 import Numeric.Units.Dimensional.LinearAlgebra
-import Numeric.Units.Dimensional.LinearAlgebra.HListExtras
 import qualified Prelude
 
 -- Be specific with types to help the type checker.
