@@ -4,7 +4,7 @@
 import Control.Applicative
 import Data.List hiding (sum)
 import Graphics.Rendering.Chart.Simple
-import System.Random
+import Data.Random.Normal (mkNormals)
 
 import KalmanStatic
 import Numeric.Units.Dimensional.Prelude
@@ -94,7 +94,7 @@ sigma_a = 0.1*~(meter/second^pos2)
 
 -- | Mean accelerations.
 as :: [A]
-as = (* sigma_a) <$> normals (randoms (mkStdGen 1847101) *~~ one)
+as = (* sigma_a) <$> mkNormals 1847101 *~~ one
 
 
 -- Sampling
@@ -110,7 +110,7 @@ sigma_z = 1.0 *~ meter
 
 -- | The measurement errors.
 vs :: [Z]
-vs = (* sigma_z) <$> normals (randoms (mkStdGen 908714) *~~ one)
+vs = (* sigma_z) <$> mkNormals 908714 *~~ one
 
 -- | True state at each sample.
 xs_true :: [X]
@@ -119,24 +119,6 @@ xs_true = scanl propagate_x x0_true (zip dts as)
 -- | Measurements.
 zs :: [Z]
 zs = zipWith (+) (map (h >.<) xs_true) vs
-
-
--- Normal distribution
--- -------------------
-
--- | Central limit theorem for approximating normally distributed sampling.
--- Takes an infinite list of random uniformly distributed samples in the
--- range (0,1) and consumes as many as needed to approximate a normally
--- distributed random sample with mean 0 and standard deviation 1.
-normal :: [Dimensionless Double] -> (Dimensionless Double, [Dimensionless Double])
-normal ss = (sum (take 12 ss) - _6, drop 12 ss)
-
--- | Central limit theorem for approximating normally distributed sampling.
--- Takes an infinite list of random uniformly distributed samples in the
--- range (0,1) and produces an infinite list of approximately normally
--- distributed random samples with mean 0 and standard deviation 1.
-normals :: [Dimensionless Double] -> [Dimensionless Double]
-normals ss = n:normals ss' where (n, ss') = normal ss
 
 
 -- Filtering
