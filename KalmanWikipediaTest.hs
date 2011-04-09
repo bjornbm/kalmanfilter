@@ -134,10 +134,11 @@ ps = snd <$> xps
 
 
 main = do
-  plotWindow ([1..200] :: [Double])
+  plotWindow ([1..100] :: [Double])
              (map (>!!zero) xs_true /~~ meter)
              (zs/~~meter) "o"
              (map (>!!pos1) xs_true /~~ (deci meter/second))
+             (repeat 1 :: [Double])  -- yellow
              (as /~~ (deci meter/second^pos2))
              (map (>!!zero) xs /~~ meter)
              (map (>!!pos1) xs /~~ (deci meter/second))
