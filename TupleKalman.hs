@@ -1,4 +1,4 @@
-module Kalman where
+module TupleKalman where
 
 import TupleAlgebra
 

@@ -3,7 +3,7 @@ import Data.List
 import Graphics.Rendering.Chart.Simple
 import System.Random
 
-import Kalman
+import TupleKalman
 import TupleAlgebra
 
 -- Model.
