@@ -112,13 +112,13 @@ sigma_z = 1.0 *~ meter
 vs :: [Z]
 vs = (* sigma_z) <$> mkNormals 908714 *~~ one
 
--- | True state at each sample.
+-- | True state at t0, t1...
 xs_true :: [X]
 xs_true = scanl propagate_x x0_true (zip dts as)
 
--- | Measurements.
+-- | Measurements at t1, t2... (note how we use only the tail of xs_true).
 zs :: [Z]
-zs = zipWith (+) (map (h >.<) xs_true) vs
+zs = zipWith (+) (map (h >.<) $ tail xs_true) vs
 
 
 -- Filtering
@@ -134,9 +134,9 @@ ps = snd <$> xps
 
 
 main = do
-  plotWindow ([1..100] :: [Double])
+  plotWindow ([1..120] :: [Double])
              (map (>!!zero) xs_true /~~ meter)
-             (zs/~~meter) "o"
+             (0:zs/~~meter) "o"
              (map (>!!pos1) xs_true /~~ (deci meter/second))
              (repeat 1 :: [Double])  -- yellow
              (as /~~ (deci meter/second^pos2))
