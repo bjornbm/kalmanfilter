@@ -44,7 +44,7 @@ import qualified Prelude
 
 
 -- Convenience types.
-type D d = Quantity d Double
+type D d = Quantity d Double  -- Q would confuse with process noise cov.
 type V v = Vec      v Double
 type M m = Mat      m Double
 
