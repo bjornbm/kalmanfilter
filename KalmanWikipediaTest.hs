@@ -86,7 +86,7 @@ g dt = dt^pos2 /_2 <:. dt
 -- | Propagation of the true state for the given time step an mean
 -- acceleration.
 propagate_x :: X -> (T,A) -> X
-propagate_x x_true_ (dt,a) = predict_x (f dt) x_true_ >+< g dt >* a
+propagate_x x_true_ (dt,a) = predict_x' (f dt) x_true_ >+< g dt >* a
 
 -- | Variance of mean acceleration.
 sigma_a :: Quantity DAcceleration Double
