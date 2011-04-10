@@ -6,6 +6,7 @@ import Data.List
 import Graphics.Rendering.Chart.Simple
 
 import KalmanStatic
+import Data.Random.Normal
 import Numeric.Units.Dimensional.Prelude
 import Numeric.Units.Dimensional.LinearAlgebra
 import qualified Prelude
@@ -46,8 +47,7 @@ p0 = fromTuples (((0.1*~one)^pos2,_0),
 -- Observations
 x0_true = fromTuple (_5,(-0.1)*~one) :: X
 
-ts = [0..100] *~~ one
-vs = map cos ts
+vs = mkNormals 1940141 *~~ one
 zs = snd $ mapAccumL (observation f h) x0_true vs
 
 observation :: F -> H -> X -> R -> (X,Z)
@@ -59,6 +59,6 @@ observation f h x_ v = (x', observe_z h x' + v)
 (xs,ps) = unzip $ discreteKF f q h r (x0,p0) zs
 
 main = do
-  plotWindow (ts/~~one)
+  plotWindow [1..100::Double]
              (zs/~~one) "o"
-             ((/~~one) $ vHead <$> fst <$> discreteKF f q h r (x0,p0) zs)
+             (tail $ (/~~one) $ vHead <$> fst <$> discreteKF f q h r (x0,p0) zs)

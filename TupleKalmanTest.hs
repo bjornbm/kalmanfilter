@@ -1,7 +1,7 @@
 import Control.Applicative
 import Data.List
 import Graphics.Rendering.Chart.Simple
-import System.Random
+import Data.Random.Normal
 
 import TupleKalman
 import TupleAlgebra
@@ -21,8 +21,8 @@ p0 = ((0.1^2,0),
 
 -- Observations
 x0_true = (5,-0.1)
-ts = [0..100]
-vs = map cos ts
+
+vs = mkNormals 1940141
 zs = snd $ mapAccumL (observation f h) x0_true vs
 
 observation :: F -> H -> X -> R -> (X,Z)
@@ -34,9 +34,9 @@ observation f h x_ v = (x', observe_z h x' + v)
 (xs,ps) = unzip $ discreteKF f q h r (x0,p0) zs
 
 main = do
-  plotWindow ts
+  plotWindow [1..100::Double]
              zs "o"
-             (fst <$> fst <$> discreteKF f q h r (x0,p0) zs)
-             (zipWith (\x p -> fst x + sqrt (fst $ fst p)) xs ps)
+             (tail $ fst <$> fst <$> discreteKF f q h r (x0,p0) zs)
+             (tail $ zipWith (\x p -> fst x + sqrt (fst $ fst p)) xs ps)
              vs "o"  -- yellow shit
-             (zipWith (\x p -> fst x - sqrt (fst $ fst p)) xs ps)
+             (tail $ zipWith (\x p -> fst x - sqrt (fst $ fst p)) xs ps)
