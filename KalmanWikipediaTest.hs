@@ -1,5 +1,13 @@
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fcontext-stack=30 #-}
 
+{-
+
+Implementation of the example application described at
+<http://en.wikipedia.org/wiki/Kalman_filter#Example_application.2C_technical>
+(as of 2011-04-10).
+
+ -}
 
 import Control.Applicative
 import Data.List hiding (sum)
@@ -133,14 +141,14 @@ ps :: [P]
 ps = snd <$> xps
 
 
-main = do
-  plotWindow ([1..120] :: [Double])
-             (map (>!!zero) xs_true /~~ meter)
-             (0:zs/~~meter) "o"
-             (map (>!!pos1) xs_true /~~ (deci meter/second))
-             (repeat 1 :: [Double])  -- yellow
-             (as /~~ (deci meter/second^pos2))
-             (map (>!!zero) xs /~~ meter)
-             (map (>!!pos1) xs /~~ (deci meter/second))
-             (map (sqrt . (>!!zero) . rowHead) ps /~~ meter)
-             (map (sqrt . (>!!pos1) . rowHead . rowTail) ps /~~ (meter/second))
+main = plotWindow
+  [0..120::Double]
+  (map (>!!zero) xs_true /~~ meter)  -- True position evolution. (blue)
+  (0:zs/~~meter) "o"                 -- Measurements, including perfect knowledge of initial state. (red)
+  (map (>!!zero) xs /~~ meter)       -- Estimated position at each sample. (green)
+  --(repeat 1::[Double])  -- Skip yellow color.
+  --(as /~~ (deci meter/second^pos2))  -- Acceleration.
+  --(map (>!!pos1) xs_true /~~ (deci meter/second))  -- True velocity evolution.
+  --(map (>!!pos1) xs /~~ (deci meter/second))       -- Estimated velocity at each sample.
+  --(map (sqrt . (>!!zero) . rowHead) ps /~~ meter)                     -- Position variance.
+  --(map (sqrt . (>!!pos1) . rowHead . rowTail) ps /~~ (meter/second))  -- Velocity variance.
