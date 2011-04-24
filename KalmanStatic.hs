@@ -62,9 +62,9 @@ predict_p' f q p_ = f |*| p_ |*| transpose f |+| q
 
 -- | Predict state and covariance one step.
 --  F -> Q -> (X_,P_) -> (X',P')
-predict :: ( MatrixVector f x x, Transpose f f'
-           ,  MatrixMatrix f p m, MatrixMatrix m f' p )
-        => M f -> M p -> (V x, M p) -> (V x, M p)
+--predict :: ( MatrixVector f x x, Transpose f f'
+--           ,  MatrixMatrix f p m, MatrixMatrix m f' p )
+--        => M f -> M p -> (V x, M p) -> (V x, M p)
 predict f q (x_,p_) = (predict_x' f x_, predict_p' f q p_)
 
 
