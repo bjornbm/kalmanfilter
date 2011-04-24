@@ -1,4 +1,5 @@
 {-# LANGUAGE TypeOperators #-}
+{-# OPTIONS_GHC -fcontext-stack=35 #-}
 
 
 import Control.Applicative
